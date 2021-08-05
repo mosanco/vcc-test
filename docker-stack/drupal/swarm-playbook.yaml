@@ -1,0 +1,51 @@
+---
+- hosts: vm
+  any_errors_fatal: true
+  become: yes
+  
+  tasks:
+    - name: Install docker-compose
+      shell: sudo apt install docker-compose -y
+
+- hosts: master
+  any_errors_fatal: true
+  become: yes
+  
+  tasks:
+    - name: Check if Swarm has already been Initialized
+      shell: docker node ls
+      register: swarm_status
+      ignore_errors: true
+      tags: swarm
+
+    - name: Initialize Docker Swarm
+      shell: docker swarm init --advertise-addr=ens33
+      when: swarm_status.rc != 0
+      run_once: true
+      tags: swarm
+
+    - name: Get the Manager join-token
+      shell: docker swarm join-token --quiet manager
+      register: manager_token
+      tags: swarm
+
+    - name: Get the worker join-token
+      shell: docker swarm join-token --quiet worker
+      register: join_token
+    
+    - name: Creating a file with content
+      copy:
+        dest: "/home/vm1/Desktop/AddWorker.sh"
+        content: |
+         
+    - name: DEBUG Copy
+      copy: content="{{ hostvars }}" dest=/home/vm1/Desktop/AddWorker.sh
+    
+- hosts: workers
+  any_errors_fatal: true
+  become: yes
+  
+  tasks:
+    - name: Add Workers to the Swarm
+      command: "docker swarm join --token {{ hostvars['master']['join_token']['stdout'] }} 192.168.255.11:2377"
+    

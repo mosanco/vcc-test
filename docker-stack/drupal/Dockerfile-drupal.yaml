@@ -1,0 +1,28 @@
+#get image
+FROM php:7.3-apache
+ 
+#installing tools and php requirements
+RUN apt -y update
+RUN apt -y install mariadb-client-core-10.3
+RUN apt -y install git
+RUN apt -y install wget
+RUN DEBIAN_FRONTEND=noninteractive apt -y install iputils-ping net-tools wait-for-it
+RUN DEBIAN_FRONTEND=noninteractive apt -y install libfreetype6-dev libjpeg62-turbo-dev libpng-dev
+RUN docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
+RUN docker-php-ext-install -j$(nproc) gd pdo pdo_mysql
+RUN a2enmod rewrite
+ 
+#download and installing drush
+RUN wget -q https://github.com/drush-ops/drush/releases/download/8.1.17/drush.phar
+RUN mv drush.phar drush
+RUN mv drush /usr/local/bin/drush
+RUN chmod +x /usr/local/bin/drush
+ 
+#add savedObj
+#ADD savedObj.ndjson /
+ 
+#add entrypoint
+RUN docker-php-ext-install mysqli
+ADD entrypoint.sh /usr/local/bin/
+RUN chmod a+x /usr/local/bin/entrypoint.sh
+ENTRYPOINT /usr/local/bin/entrypoint.sh
